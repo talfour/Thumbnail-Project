@@ -1,0 +1,78 @@
+version: "3.9"
+services:
+  backend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./Docker/backend/Dockerfile
+      args:
+        - DEV=true
+    command: sh -c "python manage.py wait_for_db &&
+      python manage.py makemigrations &&
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
+
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+      - dev-static-data:/vol/web
+    expose:
+      - 8001
+    environment:
+      DEBUG: "True"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      DJANGO_DB: postgresql
+      POSTGRES_HOST: db
+      POSTGRES_NAME: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./Docker/backend/Dockerfile
+    command: sh -c "celery -A app worker --loglevel=info --concurrency 1 -E"
+    environment:
+      DEBUG: "True"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      DJANGO_DB: postgresql
+      POSTGRES_HOST: db
+      POSTGRES_NAME: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+    volumes:
+      - ./:/app
+    depends_on:
+      - backend
+      - redis
+
+  redis:
+    restart: unless-stopped
+    image: redis:7.0.5-alpine
+    expose:
+      - 6379
+
+  db:
+    image: postgres:12.0-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    expose:
+      - 5432
+
+volumes:
+  postgres_data:
+  dev-static-data:
