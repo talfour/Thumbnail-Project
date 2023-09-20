@@ -48,13 +48,11 @@ class ImageUploadView(viewsets.ModelViewSet):
         else:
             if user_tier == "Basic":
                 BasicImageProcessor().process_image(instance)
+                # Remove URL for main file
                 instance.file = ""
             elif user_tier == "Premium":
-                BasicImageProcessor().process_image(instance)
                 PremiumImageProcessor().process_image(instance)
             elif user_tier == "Enterprise":
-                BasicImageProcessor().process_image(instance)
-                PremiumImageProcessor().process_image(instance)
                 EnterpriseImageProcessor().process_image(instance, self.request)
 
         instance.save()
