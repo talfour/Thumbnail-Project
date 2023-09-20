@@ -89,9 +89,6 @@ class Image(models.Model):
         validators=[FileExtensionValidator(allowed_extensions=["png", "jpg"])],
     )
 
-    def __str__(self):
-        return self.file
-
 
 class CustomTier(models.Model):
     name = models.CharField(max_length=100)
